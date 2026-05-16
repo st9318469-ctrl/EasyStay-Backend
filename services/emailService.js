@@ -3,8 +3,52 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const createResendTransporter = () => {
+    const apiKey = process.env.RESEND_API_KEY;
+    const fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+
+    return {
+        verify: async () => {
+            if (!apiKey) throw new Error('RESEND_API_KEY is missing');
+            if (!fromEmail) throw new Error('EMAIL_FROM or EMAIL_USER is required');
+            return true;
+        },
+        sendMail: async ({ to, subject, html, text, from }) => {
+            const response = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    from: from || fromEmail,
+                    to: Array.isArray(to) ? to : [to],
+                    subject,
+                    html,
+                    text
+                })
+            });
+
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const reason = data?.message || data?.error || `Resend API failed with status ${response.status}`;
+                throw new Error(reason);
+            }
+
+            return {
+                messageId: data?.id,
+                response: JSON.stringify(data)
+            };
+        }
+    };
+};
+
 // Create email transporter
 const createTransporter = () => {
+    if (process.env.RESEND_API_KEY) {
+        return createResendTransporter();
+    }
+
     // Remove spaces from app password if present
     const password = process.env.EMAIL_PASS?.replace(/\s/g, '');
     
