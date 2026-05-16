@@ -6,43 +6,7 @@ import nodemailer from 'nodemailer';
 const normalizeEmail = (email) => (email || '').toLowerCase().trim();
 const isDevMode = process.env.NODE_ENV !== 'production';
 
-const createResendTransporter = () => {
-  const apiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER;
-
-  return {
-    sendMail: async ({ to, subject, html, text, from }) => {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: from || fromEmail,
-          to: Array.isArray(to) ? to : [to],
-          subject,
-          html,
-          text,
-        }),
-      });
-
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        const reason = data?.message || data?.error || `Resend API failed with status ${response.status}`;
-        throw new Error(reason);
-      }
-
-      return { messageId: data?.id, response: JSON.stringify(data) };
-    },
-  };
-};
-
 const createTransporter = () => {
-  if (process.env.RESEND_API_KEY) {
-    return createResendTransporter();
-  }
-
   const password = process.env.EMAIL_PASS?.replace(/\s/g, '');
   return nodemailer.createTransport({
     host: 'smtp.gmail.com',
