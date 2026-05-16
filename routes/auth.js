@@ -30,9 +30,7 @@ router.post('/forgotpassword', forgotPassword);
 router.post('/verify-resetotp', verifyResetOTP);
 router.post('/resetpassword', resetPassword);
 router.post('/resend-resetotp', resendResetOTP);
-
-
- router.get('/me', protect, getMe);
+router.get('/me', protect, getMe);
 router.post('/logout', protect, logout);
 
 export default router;
