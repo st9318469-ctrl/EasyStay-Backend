@@ -19,6 +19,7 @@ import Message from './models/Message.js';
 import Conversation from './models/Conversation.js';
 
 dotenv.config();
+mongoose.set('bufferCommands', false);
 
 const app = express();
 const server = createServer(app);
@@ -31,17 +32,53 @@ const allowedOrigins = [
     'http://localhost:5175'
 ].filter(Boolean);
 
-const corsOrigin = allowedOrigins.length ? allowedOrigins : true;
+const corsOriginValidator = (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    const isExact = allowedOrigins.includes(origin);
+    const isVercelPreview = /^https:\/\/.*\.vercel\.app$/.test(origin);
+
+    if (isExact || isVercelPreview) {
+        return callback(null, true);
+    }
+
+    return callback(new Error('Not allowed by CORS'));
+};
+
+const corsOptions = {
+    origin: corsOriginValidator,
+    credentials: true
+};
 
 // Middleware
-app.use(cors({ origin: corsOrigin, credentials: true }));
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // MongoDB Connection
+const mongoUri = process.env.MONGODB_URI || process.env.MONGODB_URL;
+if (!mongoUri) {
+    console.error('MongoDB connection string is missing. Set MONGODB_URI (or MONGODB_URL).');
+    process.exit(1);
+}
+
 mongoose
-    .connect(process.env.MONGODB_URI)
-    .then(() => console.log('✅ MongoDB Connected'))
-    .catch((err) => console.log('❌ MongoDB Error:', err.message));
+    .connect(mongoUri)
+    .then(() => console.log('MongoDB Connected'))
+    .catch((err) => {
+        console.error('MongoDB Error:', err.message);
+        process.exit(1);
+    });
+
+// Fail fast for API calls when MongoDB is unavailable (prevents buffering timeouts).
+app.use('/api', (req, res, next) => {
+    if (mongoose.connection.readyState !== 1) {
+        return res.status(503).json({
+            success: false,
+            message: 'Database not connected. Please try again shortly.'
+        });
+    }
+    next();
+});
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -62,7 +99,7 @@ app.get('/', (req, res) => {
 // Socket.io server
 const io = new Server(server, {
     cors: {
-        origin: corsOrigin,
+        origin: corsOriginValidator,
         credentials: true
     }
 });
