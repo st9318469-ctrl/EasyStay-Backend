@@ -25,6 +25,12 @@ router.post('/verify-reset-otp', verifyResetOTP);
 router.post('/reset-password', resetPassword);
 router.post('/resend-reset-otp', resendResetOTP);
 
+// Backward-compatible aliases (frontend/deploy mismatch safety)
+router.post('/forgotpassword', forgotPassword);
+router.post('/verify-resetotp', verifyResetOTP);
+router.post('/resetpassword', resetPassword);
+router.post('/resend-resetotp', resendResetOTP);
+
 
  router.get('/me', protect, getMe);
 router.post('/logout', protect, logout);
