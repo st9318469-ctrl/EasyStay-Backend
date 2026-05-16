@@ -9,15 +9,22 @@ const createTransporter = () => {
     const password = process.env.EMAIL_PASS?.replace(/\s/g, '');
     
     const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        requireTLS: true,
+        name: 'easystay.onrender.com',
         auth: {
             user: process.env.EMAIL_USER,
             pass: password
         },
-        // Add these to prevent timeout issues
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 10000
+        connectionTimeout: 20000,
+        greetingTimeout: 20000,
+        socketTimeout: 30000,
+        tls: {
+            servername: 'smtp.gmail.com',
+            minVersion: 'TLSv1.2'
+        }
     });
     
     return transporter;

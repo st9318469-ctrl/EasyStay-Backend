@@ -9,10 +9,21 @@ const isDevMode = process.env.NODE_ENV !== 'production';
 const createTransporter = () => {
   const password = process.env.EMAIL_PASS?.replace(/\s/g, '');
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    name: 'easystay.onrender.com',
     auth: {
       user: process.env.EMAIL_USER,
       pass: password,
+    },
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 30000,
+    tls: {
+      servername: 'smtp.gmail.com',
+      minVersion: 'TLSv1.2',
     },
   });
 };
