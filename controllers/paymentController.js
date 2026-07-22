@@ -17,8 +17,8 @@ const getRazorpayClient = () => {
     }
 
     return new Razorpay({
-        key_id: rzp_test_SVwHQuWm6qtAO3,
-        key_secret: TJsHS8tZWWqn2xsnW2pOhdPS
+        key_id: process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
 };
 
