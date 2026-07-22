@@ -6,14 +6,31 @@ import nodemailer from 'nodemailer';
 const normalizeEmail = (email) => (email || '').toLowerCase().trim();
 const isDevMode = process.env.NODE_ENV !== 'production';
 
-const createTransporter = () => {
+const sendMail = async ({ to, subject, html }) => {
   const password = process.env.EMAIL_PASS?.replace(/\s/g, '');
-  return nodemailer.createTransport({
-    service: 'gmail',
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    requireTLS: true,
     auth: {
       user: process.env.EMAIL_USER,
       pass: password,
     },
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 30000,
+    tls: {
+      servername: 'smtp.gmail.com',
+      minVersion: 'TLSv1.2',
+    },
+  });
+
+  await transporter.sendMail({
+    from: `"EasyStay" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html,
   });
 };
 
@@ -216,7 +233,7 @@ export const resendOTP = async (req, res) => {
       message: 'New OTP sent to your email',
     });
   } catch (error) {
-    console.error('Resend OTP error:', error);
+    console.error('OTP email error:', error);
     return res.status(500).json({
       success: false,
       message: error.message || 'Failed to resend OTP',
@@ -326,7 +343,7 @@ export const forgotPassword = async (req, res) => {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
       return res.status(500).json({
         success: false,
-        message: 'Email service is not configured',
+        message: 'Gmail SMTP is not configured',
       });
     }
 
@@ -339,9 +356,7 @@ export const forgotPassword = async (req, res) => {
     };
     await user.save();
 
-    const transporter = createTransporter();
-    await transporter.sendMail({
-      from: `"EasyStay" <${process.env.EMAIL_USER}>`,
+    await sendMail({
       to: normalizedEmail,
       subject: 'Reset Your Password - EasyStay',
       html: `
@@ -369,6 +384,7 @@ export const forgotPassword = async (req, res) => {
       success: true,
       message: 'Password reset OTP sent to your email',
       email: user.email,
+      otpForDebug: isDevMode ? otp : undefined,
     });
   } catch (error) {
     console.error('Forgot password error:', error);
@@ -540,7 +556,7 @@ export const resendResetOTP = async (req, res) => {
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
       return res.status(500).json({
         success: false,
-        message: 'Email service is not configured',
+        message: 'Gmail SMTP is not configured',
       });
     }
 
@@ -553,9 +569,7 @@ export const resendResetOTP = async (req, res) => {
     };
     await user.save();
 
-    const transporter = createTransporter();
-    await transporter.sendMail({
-      from: `"EasyStay" <${process.env.EMAIL_USER}>`,
+    await sendMail({
       to: normalizedEmail,
       subject: 'New Password Reset OTP - EasyStay',
       html: `
@@ -573,9 +587,10 @@ export const resendResetOTP = async (req, res) => {
     return res.json({
       success: true,
       message: 'New OTP sent to your email',
+      otpForDebug: isDevMode ? otp : undefined,
     });
   } catch (error) {
-    console.error('Resend OTP error:', error);
+    console.error('Reset OTP email error:', error);
     return res.status(500).json({
       success: false,
       message: error.message,

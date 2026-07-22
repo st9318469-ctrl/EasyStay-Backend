@@ -9,11 +9,18 @@ import {
     sendHostNotificationEmail
 } from '../services/emailService.js';
 
-// Initialize Razorpay
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+const getRazorpayClient = () => {
+    const { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET } = process.env;
+
+    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+        throw new Error('Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.');
+    }
+
+    return new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+};
 
 // Create Razorpay Order
 export const createOrder = async (req, res) => {
@@ -47,6 +54,8 @@ export const createOrder = async (req, res) => {
             });
         }
         
+        const razorpay = getRazorpayClient();
+
         // Create Razorpay order
         const options = {
             amount: booking.totalPrice * 100, // Convert to paise
@@ -93,6 +102,13 @@ export const createOrder = async (req, res) => {
 // Verify Payment
 export const verifyPayment = async (req, res) => {
     try {
+        if (!process.env.RAZORPAY_KEY_SECRET) {
+            return res.status(500).json({
+                success: false,
+                message: 'Razorpay is not configured. Set RAZORPAY_KEY_SECRET.'
+            });
+        }
+
         const {
             razorpay_order_id,
             razorpay_payment_id,
