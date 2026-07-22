@@ -51,15 +51,22 @@ const calculateAvailability = async (property, start = null, end = null) => {
 
 export const createProperty = async (req, res) => {
   try {
+    if (!req.user?._id && !req.user?.id) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
     const property = new Property({
       ...req.body,
-      host: req.user?._id,
+      host: req.user?._id || req.user?.id,
       isAvailable: req.body?.isAvailable ?? true,
     });
 
     const created = await property.save();
     return res.status(201).json({ success: true, property: created });
   } catch (error) {
+    if (error?.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     return res.status(500).json({ success: false, message: error.message });
   }
 };

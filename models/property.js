@@ -11,7 +11,7 @@ const propertySchema = new mongoose.Schema({
     },
     type: {
         type: String,
-        enum: ['hotel', 'villa', 'apartment', 'cabin', 'resort'],
+        enum: ['hotel', 'villa', 'apartment', 'cabin', 'cottage', 'resort'],
         default: 'hotel'
     },
     price: {
